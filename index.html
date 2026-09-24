@@ -1,0 +1,1297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tally&Spend — Daily Expense & Passbook</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --bg: #0a0a0f;
+  --bg2: #12121a;
+  --card: #1a1a24;
+  --card2: #22222e;
+  --text: #ffffff;
+  --muted: #8b8b9e;
+  --border: #2a2a3a;
+  --primary: #3b5bdb;
+  --primary2: #2f4ac0;
+  --primary-light: #5c7cfa;
+  --green: #00e676;
+  --red: #ff5252;
+  --yellow: #ffeb3b;
+  --orange: #ff6d00;
+  --cyan: #00e5ff;
+  --lime: #c6ff00;
+  --pink: #ff4081;
+  --shadow: 0 12px 40px rgba(0,0,0,.45);
+  --brand-blue: #3b5bdb;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.5;
+}
+button, input, select, textarea { font: inherit; }
+button { cursor: pointer; border: none; outline: none; }
+input, select, textarea { outline: none; }
+
+/* Layout */
+.app { display: flex; min-height: 100vh; }
+
+.sidebar {
+  width: 260px;
+  background: linear-gradient(180deg, #12121a 0%, #0d0d14 100%);
+  border-right: 1px solid var(--border);
+  padding: 24px 16px;
+  position: fixed;
+  inset: 0 auto 0 0;
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+}
+
+.brand {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 12px 32px;
+}
+.logo {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #3b5bdb, #5c7cfa);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: -0.5px;
+  box-shadow: 0 4px 20px rgba(59,91,219,.45);
+}
+.brand b {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+  color: #fff;
+}
+.brand b span.amp {
+  color: var(--primary-light);
+  font-weight: 700;
+}
+.brand small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 2px;
+  letter-spacing: 0.2px;
+}
+
+.nav-title {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: #5a5a6e;
+  padding: 12px 14px 8px;
+  font-weight: 600;
+}
+.nav button {
+  width: 100%;
+  background: transparent;
+  color: #a0a0b5;
+  text-align: left;
+  padding: 12px 14px;
+  border-radius: 12px;
+  margin: 3px 0;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  font-weight: 500;
+  font-size: 14px;
+  transition: all .2s ease;
+}
+.nav button:hover {
+  background: rgba(59,91,219,.14);
+  color: #fff;
+}
+.nav button.active {
+  background: linear-gradient(135deg, rgba(59,91,219,.28), rgba(92,124,250,.12));
+  color: #fff;
+  box-shadow: 0 0 0 1px rgba(59,91,219,.35);
+}
+.nav-icon { width: 20px; text-align: center; font-size: 16px; }
+
+.main {
+  margin-left: 260px;
+  width: calc(100% - 260px);
+  padding: 28px 32px 40px;
+  background: var(--bg);
+  min-height: 100vh;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 28px;
+}
+.topbar h1 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+.topbar p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.top-actions { display: flex; gap: 10px; }
+
+/* Buttons */
+.btn {
+  border: 1px solid var(--border);
+  background: var(--card);
+  padding: 10px 16px;
+  border-radius: 12px;
+  color: var(--text);
+  font-weight: 500;
+  font-size: 13px;
+  transition: all .2s;
+}
+.btn:hover { background: var(--card2); border-color: #3a3a4a; }
+.btn.primary {
+  background: linear-gradient(135deg, var(--primary), var(--primary2));
+  border: none;
+  color: #fff;
+  box-shadow: 0 4px 18px rgba(59,91,219,.4);
+}
+.btn.primary:hover { filter: brightness(1.12); }
+.btn.danger { color: var(--red); border-color: rgba(255,82,82,.3); }
+.btn.danger:hover { background: rgba(255,82,82,.1); }
+
+.page { display: none; }
+.page.active { display: block; animation: fadeIn .3s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* ===== NEON FOLDER CARDS (matching image) ===== */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Folder-style metric cards */
+.metric-card {
+  border-radius: 20px 20px 18px 18px;
+  padding: 22px 20px 20px;
+  position: relative;
+  min-height: 140px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border: none;
+  box-shadow: 0 10px 30px rgba(0,0,0,.35);
+  transition: transform .25s ease, box-shadow .25s ease;
+}
+.metric-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 40px rgba(0,0,0,.45);
+}
+.metric-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 28px;
+  height: 14px;
+  border-radius: 14px 14px 0 0;
+  background: inherit;
+  filter: brightness(1.15);
+}
+.metric-card .folder-tab {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 42px;
+  height: 18px;
+  border-radius: 0 14px 0 12px;
+  background: inherit;
+  filter: brightness(1.25);
+}
+.metric-card .icon-wrap {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: rgba(0,0,0,.18);
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  margin-bottom: 14px;
+}
+.metric-card small {
+  font-size: 13px;
+  font-weight: 500;
+  opacity: .85;
+  display: block;
+}
+.metric-card h2 {
+  margin: 6px 0 0;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.6px;
+  color: #0a0a0f !important;
+}
+.metric-card.yellow { background: linear-gradient(145deg, #ffeb3b, #fdd835); color: #0a0a0f; }
+.metric-card.green  { background: linear-gradient(145deg, #69f0ae, #00e676); color: #0a0a0f; }
+.metric-card.orange { background: linear-gradient(145deg, #ff9e40, #ff6d00); color: #0a0a0f; }
+.metric-card.cyan   { background: linear-gradient(145deg, #18ffff, #00e5ff); color: #0a0a0f; }
+
+/* Dark content cards */
+.dark-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 22px;
+  box-shadow: var(--shadow);
+}
+
+.grid2 {
+  display: grid;
+  grid-template-columns: 1.3fr 0.7fr;
+  gap: 18px;
+  margin-top: 22px;
+}
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.section-head h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+}
+
+/* Tables */
+.table-wrap { overflow: auto; border-radius: 12px; }
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.table th {
+  color: var(--muted);
+  background: rgba(255,255,255,.03);
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+.table th, .table td {
+  padding: 13px 12px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  white-space: nowrap;
+}
+.table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.table tbody tr:hover { background: rgba(255,255,255,.03); }
+.empty {
+  text-align: center !important;
+  color: var(--muted);
+  padding: 40px !important;
+}
+
+/* Forms */
+.form-card { max-width: 920px; }
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+.field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 7px;
+  color: var(--muted);
+}
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: var(--bg2);
+  color: var(--text);
+  transition: border-color .2s;
+}
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(59,91,219,.2);
+}
+.field input::placeholder,
+.field textarea::placeholder { color: #55556a; }
+.field.full { grid-column: 1 / -1; }
+.form-actions { margin-top: 20px; display: flex; gap: 10px; }
+
+/* Filters */
+.filters {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.filters input,
+.filters select {
+  padding: 11px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg2);
+  color: var(--text);
+}
+
+/* Balance box */
+.balance-box {
+  background: linear-gradient(135deg, rgba(59,91,219,.18), rgba(92,124,250,.08));
+  border: 1px solid rgba(59,91,219,.3);
+  border-radius: 14px;
+  padding: 18px;
+  margin-bottom: 18px;
+}
+.balance-box span {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 500;
+}
+.balance-box strong {
+  display: block;
+  font-size: 28px;
+  margin-top: 4px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  background: linear-gradient(90deg, #5c7cfa, #00e5ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Badges */
+.badge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.badge.receipt {
+  background: rgba(0,230,118,.15);
+  color: var(--green);
+}
+.badge.payment {
+  background: rgba(255,82,82,.15);
+  color: var(--red);
+}
+
+/* Reports */
+.report-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.report-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 22px;
+}
+.report-card h4 { margin: 0 0 6px; font-size: 14px; font-weight: 600; }
+.report-card p { margin: 0; color: var(--muted); font-size: 12px; }
+.report-card strong {
+  font-size: 26px;
+  display: block;
+  margin-top: 14px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+.report-card .green { color: var(--green); }
+.report-card .red { color: var(--red); }
+
+/* Modal */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.7);
+  backdrop-filter: blur(6px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 50;
+}
+.modal.show { display: flex; }
+.modal-box {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  width: min(680px, 100%);
+  padding: 26px;
+  max-height: 90vh;
+  overflow: auto;
+  box-shadow: 0 25px 60px rgba(0,0,0,.5);
+}
+.modal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.modal-head h3 { margin: 0; font-size: 18px; }
+.close {
+  background: var(--bg2);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: var(--muted);
+  font-size: 18px;
+  display: grid;
+  place-items: center;
+}
+.close:hover { background: var(--border); color: #fff; }
+
+/* Toast */
+.toast {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  background: #1e1e2a;
+  border: 1px solid var(--border);
+  color: #fff;
+  padding: 14px 20px;
+  border-radius: 12px;
+  display: none;
+  z-index: 60;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 10px 30px rgba(0,0,0,.4);
+}
+
+/* Statement */
+.statement-preview {
+  background: #fff;
+  color: #222;
+  border-radius: 12px;
+  padding: 28px;
+  max-width: 1100px;
+  margin: 24px auto 0;
+}
+.statement-head {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 25px;
+  border-bottom: 1px solid #222;
+  padding-bottom: 18px;
+}
+.statement-head h2 { margin: 0 0 7px; font-size: 21px; color: #111; }
+.statement-head p { margin: 3px 0; font-size: 12px; color: #444; }
+.statement-meta {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin: 18px 0;
+}
+.statement-meta div {
+  border: 1px solid #ddd;
+  padding: 10px;
+  border-radius: 6px;
+}
+.statement-meta small { display: block; color: #777; font-size: 10px; }
+.statement-meta b { font-size: 12px; color: #222; }
+.statement-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  color: #222;
+}
+.statement-table th,
+.statement-table td {
+  border: 1px solid #bbb;
+  padding: 8px;
+}
+.statement-table th { background: #f0f2f5; text-align: left; }
+.statement-table .right { text-align: right; }
+.statement-summary {
+  margin-top: 22px;
+  border-top: 1px solid #222;
+  padding-top: 15px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  font-size: 12px;
+  color: #222;
+}
+.statement-note {
+  font-size: 10px;
+  color: #555;
+  line-height: 1.55;
+  margin-top: 25px;
+}
+
+/* Print */
+@media print {
+  .sidebar, .topbar, .no-print { display: none !important; }
+  .main { margin: 0; width: 100%; padding: 0; background: #fff; }
+  .statement-preview { border: 0; padding: 0; max-width: none; }
+  .statement-table { font-size: 10px; }
+  .statement-table th, .statement-table td { padding: 6px; }
+}
+
+/* Responsive */
+@media (max-width: 1100px) {
+  .cards { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 900px) {
+  .sidebar { width: 72px; padding: 16px 10px; }
+  .brand div:not(.logo),
+  .nav button span:not(.nav-icon),
+  .nav-title { display: none; }
+  .brand { padding: 6px 4px 24px; justify-content: center; }
+  .main { margin-left: 72px; width: calc(100% - 72px); padding: 20px; }
+  .grid2 { grid-template-columns: 1fr; }
+  .report-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 600px) {
+  .main { padding: 16px; }
+  .topbar { align-items: flex-start; flex-direction: column; gap: 12px; }
+  .top-actions { width: 100%; }
+  .top-actions .btn { flex: 1; }
+  .cards { grid-template-columns: 1fr 1fr; gap: 12px; }
+  .metric-card { min-height: 120px; padding: 16px; }
+  .metric-card h2 { font-size: 20px; }
+  .form-grid { grid-template-columns: 1fr; }
+  .field.full { grid-column: auto; }
+  .report-grid { grid-template-columns: 1fr; }
+  .topbar h1 { font-size: 22px; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="sidebar">
+  <div class="brand">
+    <div class="logo">TS</div>
+    <div>
+      <b>Tally<span class="amp">&</span>Spend</b>
+      <small>Daily Accounts</small>
+    </div>
+  </div>
+  <div class="nav-title">Main Menu</div>
+  <div class="nav">
+    <button class="active" data-page="dashboard"><span class="nav-icon">⌂</span><span>Dashboard</span></button>
+    <button data-page="expense"><span class="nav-icon">−</span><span>Daily Expense</span></button>
+    <button data-page="income"><span class="nav-icon">+</span><span>Income / Receipt</span></button>
+    <button data-page="passbook"><span class="nav-icon">▤</span><span>Passbook</span></button>
+    <button data-page="statement"><span class="nav-icon">▤</span><span>Statement Generator</span></button>
+    <button data-page="reports"><span class="nav-icon">▥</span><span>Reports</span></button>
+  </div>
+  <div class="nav-title" style="margin-top:24px">System</div>
+  <div class="nav">
+    <button onclick="exportData()"><span class="nav-icon">↓</span><span>Backup Data</span></button>
+    <button onclick="clearData()"><span class="nav-icon">⌫</span><span>Clear Data</span></button>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="topbar">
+    <div>
+      <h1 id="pageTitle">Dashboard</h1>
+      <p id="pageSubtitle">Daily Expense & Passbook Management</p>
+    </div>
+    <div class="top-actions">
+      <button class="btn" onclick="openEntry('income')">+ Receipt</button>
+      <button class="btn primary" onclick="openEntry('expense')">+ Expense</button>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <section id="dashboard" class="page active">
+    <div class="cards">
+      <div class="metric-card yellow">
+        <div class="folder-tab"></div>
+        <div class="icon-wrap">₹</div>
+        <div>
+          <small>Current Balance</small>
+          <h2 id="dashBalance">₹0.00</h2>
+        </div>
+      </div>
+      <div class="metric-card green">
+        <div class="folder-tab"></div>
+        <div class="icon-wrap">↗</div>
+        <div>
+          <small>Total Receipts</small>
+          <h2 id="dashIncome">₹0.00</h2>
+        </div>
+      </div>
+      <div class="metric-card orange">
+        <div class="folder-tab"></div>
+        <div class="icon-wrap">↘</div>
+        <div>
+          <small>Total Expenses</small>
+          <h2 id="dashExpense">₹0.00</h2>
+        </div>
+      </div>
+      <div class="metric-card cyan">
+        <div class="folder-tab"></div>
+        <div class="icon-wrap">▣</div>
+        <div>
+          <small>Today's Expense</small>
+          <h2 id="dashToday">₹0.00</h2>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="dark-card">
+        <div class="section-head">
+          <h3>Recent Transactions</h3>
+          <button class="btn" onclick="showPage('passbook')">View All</button>
+        </div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Particulars</th>
+                <th>Type</th>
+                <th class="num">Amount</th>
+              </tr>
+            </thead>
+            <tbody id="recentTable"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="dark-card">
+        <div class="section-head"><h3>Quick Summary</h3></div>
+        <div class="balance-box">
+          <span>Net Position</span>
+          <strong id="netPosition">₹0.00</strong>
+        </div>
+        <p style="font-size:13px;color:var(--muted);line-height:1.7">
+          Record your daily receipts and expenses to automatically maintain a running passbook and generate reports.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- EXPENSE -->
+  <section id="expense" class="page">
+    <div class="dark-card form-card">
+      <div class="section-head"><h3>Add Daily Expense</h3></div>
+      <form id="expenseForm">
+        <div class="form-grid">
+          <div class="field"><label>Date</label><input type="date" name="date" required></div>
+          <div class="field">
+            <label>Expense Head</label>
+            <select name="head" required>
+              <option value="">Select Head</option>
+              <option>Office Expense</option>
+              <option>Travel</option>
+              <option>Food</option>
+              <option>Stationery</option>
+              <option>Salary / Wages</option>
+              <option>Electricity</option>
+              <option>Rent</option>
+              <option>Maintenance</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div class="field"><label>Amount (₹)</label><input type="number" name="amount" min="0.01" step="0.01" required></div>
+          <div class="field">
+            <label>Payment Mode</label>
+            <select name="mode">
+              <option>Cash</option>
+              <option>Bank</option>
+              <option>UPI</option>
+              <option>Card</option>
+            </select>
+          </div>
+          <div class="field full"><label>Description</label><input name="description" placeholder="Enter expense description" required></div>
+          <div class="field full"><label>Remarks</label><textarea name="remarks" rows="3" placeholder="Optional remarks"></textarea></div>
+        </div>
+        <div class="form-actions">
+          <button class="btn primary">Save Expense</button>
+          <button type="reset" class="btn">Reset</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- INCOME -->
+  <section id="income" class="page">
+    <div class="dark-card form-card">
+      <div class="section-head"><h3>Add Income / Receipt</h3></div>
+      <form id="incomeForm">
+        <div class="form-grid">
+          <div class="field"><label>Date</label><input type="date" name="date" required></div>
+          <div class="field"><label>Received From</label><input name="from" placeholder="Party / Person" required></div>
+          <div class="field"><label>Amount (₹)</label><input type="number" name="amount" min="0.01" step="0.01" required></div>
+          <div class="field">
+            <label>Payment Mode</label>
+            <select name="mode">
+              <option>Cash</option>
+              <option>Bank</option>
+              <option>UPI</option>
+              <option>Card</option>
+            </select>
+          </div>
+          <div class="field full"><label>Description</label><input name="description" placeholder="Receipt description" required></div>
+          <div class="field full"><label>Remarks</label><textarea name="remarks" rows="3" placeholder="Optional remarks"></textarea></div>
+        </div>
+        <div class="form-actions">
+          <button class="btn primary">Save Receipt</button>
+          <button type="reset" class="btn">Reset</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- PASSBOOK -->
+  <section id="passbook" class="page">
+    <div class="dark-card">
+      <div class="section-head">
+        <h3>Passbook Statement</h3>
+        <button class="btn primary" onclick="printPassbook()">Print Passbook</button>
+      </div>
+      <div class="filters">
+        <input type="date" id="fromDate">
+        <input type="date" id="toDate">
+        <input id="search" placeholder="Search particulars...">
+        <button class="btn" onclick="renderPassbook()">Apply Filter</button>
+        <button class="btn" onclick="resetFilters()">Reset</button>
+      </div>
+      <div class="balance-box">
+        <span>Current Balance</span>
+        <strong id="passBalance">₹0.00</strong>
+      </div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Particulars</th>
+              <th>Mode</th>
+              <th class="num">Receipt</th>
+              <th class="num">Payment</th>
+              <th class="num">Balance</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="passbookTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATEMENT -->
+  <section id="statement" class="page">
+    <div class="dark-card no-print">
+      <div class="section-head">
+        <h3>Bank-Style Statement Generator</h3>
+        <button class="btn primary" onclick="printStatement()">Print Statement</button>
+      </div>
+      <div class="form-grid">
+        <div class="field"><label>Account Holder</label><input id="stName" value="Bhim"></div>
+        <div class="field"><label>Account Number</label><input id="stAccount" value="Account #01"></div>
+        <div class="field"><label>Address</label><input id="stAddress" value="House Number - 165, Kutani Road"></div>
+        <div class="field"><label>Branch</label><input id="stBranch" value="Panipat"></div>
+        <div class="field"><label>IFSC</label><input id="stIfsc" value="neelam143"></div>
+        <div class="field"><label>MICR</label><input id="stMicr" value="132485002"></div>
+        <div class="field"><label>Account Type</label><input id="stType" value="Saving Account (S) + Prepaid"></div>
+        <div class="field"><label>Statement From</label><input id="stFrom" type="date"></div>
+        <div class="field"><label>Statement To</label><input id="stTo" type="date"></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn" onclick="generateStatement()">Generate Statement</button>
+        <button class="btn primary" onclick="printStatement()">Print / Save PDF</button>
+      </div>
+    </div>
+    <div class="statement-preview" id="statementPreview"></div>
+  </section>
+
+  <!-- REPORTS -->
+  <section id="reports" class="page">
+    <div class="report-grid">
+      <div class="report-card">
+        <h4>Total Receipts</h4>
+        <p>All recorded income</p>
+        <strong class="green" id="reportIncome">₹0.00</strong>
+      </div>
+      <div class="report-card">
+        <h4>Total Expenses</h4>
+        <p>All recorded payments</p>
+        <strong class="red" id="reportExpense">₹0.00</strong>
+      </div>
+      <div class="report-card">
+        <h4>Net Balance</h4>
+        <p>Receipts minus expenses</p>
+        <strong id="reportBalance">₹0.00</strong>
+      </div>
+    </div>
+    <div class="dark-card" style="margin-top:20px">
+      <div class="section-head"><h3>Expense Head Summary</h3></div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Expense Head</th>
+              <th class="num">Transactions</th>
+              <th class="num">Total Amount</th>
+            </tr>
+          </thead>
+          <tbody id="headSummary"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</main>
+</div>
+
+<div class="modal" id="entryModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="modalTitle">Add Entry</h3>
+      <button class="close" onclick="closeModal()">×</button>
+    </div>
+    <div id="modalContent"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const KEY = 'tallyspend_data_v1';
+let data = JSON.parse(localStorage.getItem(KEY) || '[]');
+const today = new Date().toISOString().slice(0, 10);
+document.querySelectorAll('input[type=date]').forEach(x => { if (!x.value) x.value = today; });
+
+const money = n => '₹' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const save = () => localStorage.setItem(KEY, JSON.stringify(data));
+
+function toast(t) {
+  const x = document.getElementById('toast');
+  x.textContent = t;
+  x.style.display = 'block';
+  setTimeout(() => x.style.display = 'none', 1800);
+}
+
+function totals() {
+  return {
+    income: data.filter(x => x.type === 'income').reduce((a, x) => a + x.amount, 0),
+    expense: data.filter(x => x.type === 'expense').reduce((a, x) => a + x.amount, 0)
+  };
+}
+
+function render() {
+  const t = totals();
+  const bal = t.income - t.expense;
+  const todayExp = data.filter(x => x.type === 'expense' && x.date === today).reduce((a, x) => a + x.amount, 0);
+
+  dashBalance.textContent = money(bal);
+  dashIncome.textContent = money(t.income);
+  dashExpense.textContent = money(t.expense);
+  dashToday.textContent = money(todayExp);
+  netPosition.textContent = money(bal);
+  reportIncome.textContent = money(t.income);
+  reportExpense.textContent = money(t.expense);
+  reportBalance.textContent = money(bal);
+
+  const recent = [...data].sort((a, b) => (b.date + b.id).localeCompare(a.date + a.id)).slice(0, 8);
+  recentTable.innerHTML = recent.length
+    ? recent.map(x => `<tr>
+        <td>${fmtDate(x.date)}</td>
+        <td>${esc(x.particular)}</td>
+        <td><span class="badge ${x.type === 'income' ? 'receipt' : 'payment'}">${x.type === 'income' ? 'Receipt' : 'Payment'}</span></td>
+        <td class="num">${money(x.amount)}</td>
+      </tr>`).join('')
+    : `<tr><td colspan="4" class="empty">No transactions yet</td></tr>`;
+
+  renderPassbook();
+  renderHeads();
+}
+
+function fmtDate(s) {
+  return s ? new Date(s + 'T00:00:00').toLocaleDateString('en-IN') : '';
+}
+
+function esc(s) {
+  return String(s || '').replace(/[&<>"']/g, m => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+  }[m]));
+}
+
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.nav button[data-page]').forEach(b => b.classList.toggle('active', b.dataset.page === id));
+
+  const names = {
+    dashboard: ['Dashboard', 'Daily Expense & Passbook Management'],
+    expense: ['Daily Expense', 'Record your daily payments'],
+    income: ['Income / Receipt', 'Record money received'],
+    passbook: ['Passbook', 'Complete running account statement'],
+    statement: ['Statement Generator', 'Bank-style printable account statement'],
+    reports: ['Reports', 'View account summaries and expense analysis']
+  };
+  pageTitle.textContent = names[id][0];
+  pageSubtitle.textContent = names[id][1];
+  window.scrollTo(0, 0);
+}
+
+document.querySelectorAll('.nav button[data-page]').forEach(b => b.onclick = () => showPage(b.dataset.page));
+
+function addEntry(type, obj) {
+  data.push({ id: Date.now().toString(), type, ...obj, amount: Number(obj.amount) });
+  save();
+  render();
+  toast(type === 'income' ? 'Receipt saved' : 'Expense saved');
+}
+
+expenseForm.onsubmit = e => {
+  e.preventDefault();
+  const f = new FormData(e.target);
+  addEntry('expense', {
+    date: f.get('date'),
+    particular: f.get('head') + ' — ' + f.get('description'),
+    head: f.get('head'),
+    mode: f.get('mode'),
+    amount: f.get('amount'),
+    remarks: f.get('remarks')
+  });
+  e.target.reset();
+  e.target.date.value = today;
+};
+
+incomeForm.onsubmit = e => {
+  e.preventDefault();
+  const f = new FormData(e.target);
+  addEntry('income', {
+    date: f.get('date'),
+    particular: f.get('from') + ' — ' + f.get('description'),
+    head: 'Receipt',
+    mode: f.get('mode'),
+    amount: f.get('amount'),
+    remarks: f.get('remarks')
+  });
+  e.target.reset();
+  e.target.date.value = today;
+};
+
+function openEntry(type) {
+  const title = type === 'income' ? 'Add Income / Receipt' : 'Add Daily Expense';
+  modalTitle.textContent = title;
+  modalContent.innerHTML = type === 'income'
+    ? `<form id="quickForm">
+        <div class="form-grid">
+          <div class="field"><label>Date</label><input name="date" type="date" value="${today}" required></div>
+          <div class="field"><label>Received From</label><input name="from" required></div>
+          <div class="field"><label>Amount (₹)</label><input name="amount" type="number" step=".01" required></div>
+          <div class="field"><label>Mode</label><select name="mode"><option>Cash</option><option>Bank</option><option>UPI</option><option>Card</option></select></div>
+          <div class="field full"><label>Description</label><input name="description" required></div>
+        </div>
+        <div class="form-actions"><button class="btn primary">Save Receipt</button></div>
+      </form>`
+    : `<form id="quickForm">
+        <div class="form-grid">
+          <div class="field"><label>Date</label><input name="date" type="date" value="${today}" required></div>
+          <div class="field"><label>Expense Head</label>
+            <select name="head" required>
+              <option>Office Expense</option><option>Travel</option><option>Food</option>
+              <option>Stationery</option><option>Salary / Wages</option><option>Electricity</option>
+              <option>Rent</option><option>Maintenance</option><option>Other</option>
+            </select>
+          </div>
+          <div class="field"><label>Amount (₹)</label><input name="amount" type="number" step=".01" required></div>
+          <div class="field"><label>Mode</label><select name="mode"><option>Cash</option><option>Bank</option><option>UPI</option><option>Card</option></select></div>
+          <div class="field full"><label>Description</label><input name="description" required></div>
+        </div>
+        <div class="form-actions"><button class="btn primary">Save Expense</button></div>
+      </form>`;
+
+  entryModal.classList.add('show');
+  quickForm.onsubmit = e => {
+    e.preventDefault();
+    const f = new FormData(e.target);
+    addEntry(type, {
+      date: f.get('date'),
+      particular: (type === 'income' ? f.get('from') + ' — ' : '') + (type === 'expense' ? f.get('head') + ' — ' : '') + f.get('description'),
+      head: type === 'income' ? 'Receipt' : f.get('head'),
+      mode: f.get('mode'),
+      amount: f.get('amount')
+    });
+    closeModal();
+  };
+}
+
+function closeModal() { entryModal.classList.remove('show'); }
+
+function renderPassbook() {
+  let rows = [...data].sort((a, b) => (a.date + a.id).localeCompare(b.date + b.id));
+  const from = document.getElementById('fromDate').value;
+  const to = document.getElementById('toDate').value;
+  const q = document.getElementById('search').value.toLowerCase();
+  let balance = 0;
+  let html = '';
+
+  rows.forEach(x => {
+    balance += x.type === 'income' ? x.amount : -x.amount;
+    if ((from && x.date < from) || (to && x.date > to) || (q && !x.particular.toLowerCase().includes(q))) return;
+    html += `<tr>
+      <td>${fmtDate(x.date)}</td>
+      <td>${esc(x.particular)}</td>
+      <td>${x.mode}</td>
+      <td class="num" style="color:var(--green)">${x.type === 'income' ? money(x.amount) : '—'}</td>
+      <td class="num" style="color:var(--red)">${x.type === 'expense' ? money(x.amount) : '—'}</td>
+      <td class="num">${money(balance)}</td>
+      <td><button class="btn danger" onclick="deleteEntry('${x.id}')">Delete</button></td>
+    </tr>`;
+  });
+
+  document.getElementById('passbookTable').innerHTML = html || `<tr><td colspan="7" class="empty">No transactions found</td></tr>`;
+  document.getElementById('passBalance').textContent = money(balance);
+}
+
+function deleteEntry(id) {
+  if (confirm('Delete this transaction?')) {
+    data = data.filter(x => x.id !== id);
+    save();
+    render();
+    toast('Transaction deleted');
+  }
+}
+
+function resetFilters() {
+  document.getElementById('fromDate').value = '';
+  document.getElementById('toDate').value = '';
+  document.getElementById('search').value = '';
+  renderPassbook();
+}
+
+function renderHeads() {
+  let m = {};
+  data.filter(x => x.type === 'expense').forEach(x => {
+    if (!m[x.head]) m[x.head] = { n: 0, a: 0 };
+    m[x.head].n++;
+    m[x.head].a += x.amount;
+  });
+  headSummary.innerHTML = Object.keys(m).length
+    ? Object.entries(m).sort((a, b) => b[1].a - a[1].a).map(([k, v]) =>
+        `<tr><td>${esc(k)}</td><td class="num">${v.n}</td><td class="num">${money(v.a)}</td></tr>`
+      ).join('')
+    : `<tr><td colspan="3" class="empty">No expense data</td></tr>`;
+}
+
+function exportData() {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'tallyspend-backup.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function clearData() {
+  if (confirm('This will delete all transactions. Continue?')) {
+    data = [];
+    save();
+    render();
+    toast('All data cleared');
+  }
+}
+
+function printPassbook() {
+  const t = totals();
+  const rows = [...data].sort((a, b) => (a.date + a.id).localeCompare(b.date + b.id));
+  let bal = 0;
+  const tr = rows.map(x => {
+    bal += x.type === 'income' ? x.amount : -x.amount;
+    return `<tr>
+      <td>${fmtDate(x.date)}</td>
+      <td>${esc(x.particular)}</td>
+      <td>${x.type === 'income' ? money(x.amount) : ''}</td>
+      <td>${x.type === 'expense' ? money(x.amount) : ''}</td>
+      <td>${money(bal)}</td>
+    </tr>`;
+  }).join('');
+
+  const w = window.open('', '_blank', 'width=1000,height=750');
+  if (!w) { alert('Please allow pop-ups for this website to print the passbook.'); return; }
+  w.document.open();
+  w.document.write(`<!doctype html><html><head><title>Tally&Spend - Passbook</title>
+  <style>
+    body{font-family:Arial,sans-serif;margin:35px;color:#222}
+    h1{margin:0 0 5px;font-size:26px}.sub{color:#666;margin-bottom:20px}
+    .summary{display:flex;gap:30px;flex-wrap:wrap;border:1px solid #ddd;padding:14px;margin:18px 0}
+    table{width:100%;border-collapse:collapse;margin-top:20px}
+    th,td{border:1px solid #ccc;padding:9px;text-align:left;font-size:12px}
+    th{background:#f1f3f6}td:nth-child(3),td:nth-child(4),td:nth-child(5){text-align:right}
+    .footer{margin-top:35px;color:#666;font-size:11px}
+    @media print{body{margin:12mm}.no-print{display:none!important}}
+  </style></head><body>
+  <h1>Tally&Spend</h1><div class="sub">Passbook Statement</div>
+  <div class="summary">
+    <b>Total Receipt: ${money(t.income)}</b>
+    <b>Total Payment: ${money(t.expense)}</b>
+    <b>Closing Balance: ${money(t.income - t.expense)}</b>
+  </div>
+  <table>
+    <thead><tr><th>Date</th><th>Particulars</th><th>Receipt</th><th>Payment</th><th>Balance</th></tr></thead>
+    <tbody>${tr || '<tr><td colspan="5">No transactions found</td></tr>'}</tbody>
+  </table>
+  <div class="footer">Generated on ${new Date().toLocaleString('en-IN')}<br>Designed & Developed by Bhim Mondal</div>
+  <script>window.onload=function(){setTimeout(function(){window.print()},300)}<\/script>
+  </body></html>`);
+  w.document.close();
+}
+
+function generateStatement() {
+  const from = document.getElementById('stFrom').value;
+  const to = document.getElementById('stTo').value;
+  const holder = esc(document.getElementById('stName').value);
+  const account = esc(document.getElementById('stAccount').value);
+  const address = esc(document.getElementById('stAddress').value);
+  const branch = esc(document.getElementById('stBranch').value);
+  const ifsc = esc(document.getElementById('stIfsc').value);
+  const micr = esc(document.getElementById('stMicr').value);
+  const type = esc(document.getElementById('stType').value);
+
+  let opening = 0;
+  const all = [...data].sort((a, b) => (a.date + a.id).localeCompare(b.date + b.id));
+  all.forEach(x => {
+    if (from && x.date < from) opening += x.type === 'income' ? x.amount : -x.amount;
+  });
+  const rows = all.filter(x => (!from || x.date >= from) && (!to || x.date <= to));
+  let bal = opening, totalDebit = 0, totalCredit = 0;
+  let body = '';
+
+  if (from) {
+    body += `<tr><td>${fmtDate(from)}</td><td>Opening Balance</td><td></td><td></td><td class="right">${money(opening)}</td></tr>`;
+  }
+
+  rows.forEach(x => {
+    const debit = x.type === 'expense' ? x.amount : 0;
+    const credit = x.type === 'income' ? x.amount : 0;
+    totalDebit += debit;
+    totalCredit += credit;
+    bal += credit - debit;
+    body += `<tr>
+      <td>${fmtDate(x.date)}</td>
+      <td>${esc(x.particular)}</td>
+      <td class="right">${debit ? money(debit) : ''}</td>
+      <td class="right">${credit ? money(credit) : ''}</td>
+      <td class="right">${money(bal)}</td>
+    </tr>`;
+  });
+
+  if (!body) body = '<tr><td colspan="5" style="text-align:center">No transactions for selected period</td></tr>';
+
+  const period = (from ? fmtDate(from) : 'Start') + ' to ' + (to ? fmtDate(to) : 'Present');
+  document.getElementById('statementPreview').innerHTML = `
+    <div class="statement-head">
+      <div><h2>${holder}</h2><p>${address}</p><p>${branch}, Haryana INDIA</p></div>
+      <div>
+        <p><b>ACCOUNT STATEMENT</b></p>
+        <p>Account: ${account}</p>
+        <p>Currency: Indian Rupees</p>
+        <p>Period: ${period}</p>
+      </div>
+    </div>
+    <div class="statement-meta">
+      <div><small>HOME BRANCH</small><b>${branch}</b></div>
+      <div><small>IFSC</small><b>${ifsc}</b></div>
+      <div><small>MICR</small><b>${micr}</b></div>
+      <div><small>ACCOUNT TYPE</small><b>${type}</b></div>
+    </div>
+    <table class="statement-table">
+      <thead>
+        <tr>
+          <th>DATE</th>
+          <th>TRANSACTION DETAILS</th>
+          <th class="right">DEBIT</th>
+          <th class="right">CREDIT</th>
+          <th class="right">BALANCE</th>
+        </tr>
+      </thead>
+      <tbody>${body}</tbody>
+    </table>
+    <div class="statement-summary">
+      <div>
+        <b>SUMMARY</b>
+        <p>Total Debit: ${money(totalDebit)}</p>
+        <p>Total Credit: ${money(totalCredit)}</p>
+      </div>
+      <div>
+        <b>ACCOUNT BALANCE</b>
+        <p>Closing Balance: <strong>${money(bal)}</strong></p>
+        <p>Transactions: ${rows.length}</p>
+      </div>
+    </div>
+    <div class="statement-note">
+      This is a system generated statement and does not require signature and stamp.<br>
+      Any discrepancy in the statement should be brought to the notice of the account administrator within one month from the date of statement.<br>
+      All transactions shown above are generated from the entries recorded in Tally&Spend.
+    </div>`;
+}
+
+function printStatement() {
+  generateStatement();
+  const content = document.getElementById('statementPreview').outerHTML;
+  const w = window.open('', '_blank', 'width=1100,height=800');
+  if (!w) { alert('Please allow pop-ups to print the statement.'); return; }
+  w.document.write(`<!doctype html><html><head><title>Account Statement</title>
+  <style>
+    @page{size:A4;margin:12mm}
+    body{font-family:Arial,sans-serif;color:#222;margin:0}
+    .statement-preview{padding:5px}
+    .statement-head{display:grid;grid-template-columns:1fr 1fr;gap:25px;border-bottom:1px solid #222;padding-bottom:18px}
+    .statement-head h2{margin:0 0 7px;font-size:21px}
+    .statement-head p{margin:3px 0;font-size:11px;color:#444}
+    .statement-meta{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:16px 0}
+    .statement-meta div{border:1px solid #ccc;padding:8px}
+    .statement-meta small{display:block;color:#777;font-size:9px}
+    .statement-meta b{font-size:10px}
+    .statement-table{width:100%;border-collapse:collapse;font-size:9px}
+    .statement-table th,.statement-table td{border:1px solid #aaa;padding:6px}
+    .statement-table th{background:#eee;text-align:left}
+    .statement-table .right{text-align:right}
+    .statement-summary{margin-top:18px;border-top:1px solid #222;padding-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:30px;font-size:10px}
+    .statement-note{font-size:8px;color:#555;line-height:1.5;margin-top:25px}
+  </style></head><body>
+  ${content}
+  <script>window.onload=function(){setTimeout(function(){window.print()},300)}<\/script>
+  </body></html>`);
+  w.document.close();
+}
+
+render();
+</script>
+</body>
+</html>
